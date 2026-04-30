@@ -323,194 +323,6 @@ task.spawn(function()
     end
 end)
 
--- ===== FLY =====
-local flyEnabled = false
-local flyConnection = nil
-local flyBV = nil
-local flyBG = nil
-local flySpeed = 60
-
-local function StopFly()
-    flyEnabled = false
-    if flyConnection then flyConnection:Disconnect() flyConnection = nil end
-    if flyBV then flyBV:Destroy() flyBV = nil end
-    if flyBG then flyBG:Destroy() flyBG = nil end
-    local char = Players.LocalPlayer.Character
-    local hum = char and char:FindFirstChild("Humanoid")
-    local hrp = char and char:FindFirstChild("HumanoidRootPart")
-    if hum then
-        hum.PlatformStand = false
-        hum.AutoRotate = true
-    end
-    if hrp then
-        hrp.AssemblyLinearVelocity = Vector3.zero
-    end
-end
-
-local function StartFly()
-    local char = Players.LocalPlayer.Character
-    local hrp  = char and char:FindFirstChild("HumanoidRootPart")
-    local hum  = char and char:FindFirstChild("Humanoid")
-    if not hrp or not hum then return end
-
-    hum.PlatformStand = false
-    hum.AutoRotate = false
-
-    -- BodyVelocity: controla la velocidad de movimiento
-    flyBV = Instance.new("BodyVelocity")
-    flyBV.Velocity   = Vector3.zero
-    flyBV.MaxForce   = Vector3.new(1e6, 1e6, 1e6)
-    flyBV.P          = 1e4
-    flyBV.Parent     = hrp
-
-    -- BodyGyro: mantiene la orientación del personaje
-    flyBG = Instance.new("BodyGyro")
-    flyBG.MaxTorque  = Vector3.new(1e6, 1e6, 1e6)
-    flyBG.P          = 5e3
-    flyBG.D          = 500
-    flyBG.CFrame     = hrp.CFrame
-    flyBG.Parent     = hrp
-
-    local cam = workspace.CurrentCamera
-
-    flyConnection = RunService.RenderStepped:Connect(function()
-        if not flyEnabled then return end
-
-        local cf       = cam.CFrame
-        local forward  = Vector3.new(cf.LookVector.X,  0, cf.LookVector.Z).Unit
-        local right    = Vector3.new(cf.RightVector.X, 0, cf.RightVector.Z).Unit
-        local moveDir  = Vector3.zero
-
-        -- Movimiento horizontal sigue la dirección de la cámara
-        if UserInputService:IsKeyDown(Enum.KeyCode.W) then
-            moveDir = moveDir + forward
-        end
-        if UserInputService:IsKeyDown(Enum.KeyCode.S) then
-            moveDir = moveDir - forward
-        end
-        if UserInputService:IsKeyDown(Enum.KeyCode.A) then
-            moveDir = moveDir - right
-        end
-        if UserInputService:IsKeyDown(Enum.KeyCode.D) then
-            moveDir = moveDir + right
-        end
-
-        -- Subir y bajar en vertical puro
-        if UserInputService:IsKeyDown(Enum.KeyCode.Space) then
-            moveDir = moveDir + Vector3.new(0, 1, 0)
-        end
-        if UserInputService:IsKeyDown(Enum.KeyCode.LeftControl) or
-           UserInputService:IsKeyDown(Enum.KeyCode.LeftShift) then
-            moveDir = moveDir - Vector3.new(0, 1, 0)
-        end
-
-        -- Aplicar velocidad
-        if moveDir.Magnitude > 0 then
-            flyBV.Velocity = moveDir.Unit * flySpeed
-        else
-            -- Frenar suavemente al soltar teclas
-            flyBV.Velocity = flyBV.Velocity * 0.75
-        end
-
-        -- Rotar el personaje para mirar hacia donde vamos (solo eje Y)
-        if moveDir.Magnitude > 0 then
-            local lookAt = hrp.Position + Vector3.new(moveDir.X, 0, moveDir.Z)
-            if (lookAt - hrp.Position).Magnitude > 0.01 then
-                flyBG.CFrame = CFrame.lookAt(hrp.Position, lookAt)
-            end
-        end
-    end)
-end
-
-local flyBtn = addBtn("🦅 Fly: OFF", Color3.fromRGB(100, 255, 150), combatPage)
-flyBtn.MouseButton1Click:Connect(function()
-    flyEnabled = not flyEnabled
-    flyBtn.Text = flyEnabled and "🦅 Fly: ON" or "🦅 Fly: OFF"
-    if flyEnabled then
-        StartFly()
-    else
-        StopFly()
-    end
-end)
-
--- Panel de velocidad del Fly
-local flySpeedPanel = Instance.new("Frame", screenGui)
-flySpeedPanel.Size = UDim2.new(0, 170, 0, 50)
-flySpeedPanel.Position = UDim2.new(0, 20, 0.55, 0)
-flySpeedPanel.BackgroundColor3 = Color3.fromRGB(20, 20, 40)
-flySpeedPanel.Visible = false
-flySpeedPanel.Active = true
-flySpeedPanel.Draggable = true
-flySpeedPanel.BorderSizePixel = 0
-local flySpCorner = Instance.new("UICorner", flySpeedPanel)
-flySpCorner.CornerRadius = UDim.new(0, 8)
-local flySpStroke = Instance.new("UIStroke", flySpeedPanel)
-flySpStroke.Color = Color3.fromRGB(100, 255, 150)
-flySpStroke.Thickness = 2
-
-local flyLabel = Instance.new("TextLabel", flySpeedPanel)
-flyLabel.Size = UDim2.new(1, 0, 0, 18)
-flyLabel.Position = UDim2.new(0, 0, 0, 2)
-flyLabel.Text = "🦅 Fly Speed"
-flyLabel.TextColor3 = Color3.fromRGB(100, 255, 150)
-flyLabel.Font = Enum.Font.GothamBold
-flyLabel.TextSize = 11
-flyLabel.BackgroundTransparency = 1
-
-local flyBtnM = Instance.new("TextButton", flySpeedPanel)
-flyBtnM.Size = UDim2.new(0, 35, 0, 25)
-flyBtnM.Position = UDim2.new(0.04, 0, 0.5, 2)
-flyBtnM.Text = "−"
-flyBtnM.BackgroundColor3 = Color3.fromRGB(50, 50, 100)
-flyBtnM.TextColor3 = Color3.new(1,1,1)
-flyBtnM.Font = Enum.Font.GothamBold
-flyBtnM.TextSize = 18
-flyBtnM.BorderSizePixel = 0
-Instance.new("UICorner", flyBtnM).CornerRadius = UDim.new(0, 6)
-
-local flySpDisp = Instance.new("TextLabel", flySpeedPanel)
-flySpDisp.Size = UDim2.new(0, 50, 0, 25)
-flySpDisp.Position = UDim2.new(0.38, 0, 0.5, 2)
-flySpDisp.Text = tostring(flySpeed)
-flySpDisp.TextColor3 = Color3.fromRGB(100, 255, 150)
-flySpDisp.Font = Enum.Font.GothamBold
-flySpDisp.TextSize = 15
-flySpDisp.BackgroundTransparency = 1
-
-local flyBtnP = Instance.new("TextButton", flySpeedPanel)
-flyBtnP.Size = UDim2.new(0, 35, 0, 25)
-flyBtnP.Position = UDim2.new(0.62, 0, 0.5, 2)
-flyBtnP.Text = "+"
-flyBtnP.BackgroundColor3 = Color3.fromRGB(50, 50, 100)
-flyBtnP.TextColor3 = Color3.new(1,1,1)
-flyBtnP.Font = Enum.Font.GothamBold
-flyBtnP.TextSize = 18
-flyBtnP.BorderSizePixel = 0
-Instance.new("UICorner", flyBtnP).CornerRadius = UDim.new(0, 6)
-
-flyBtnP.MouseButton1Click:Connect(function()
-    flySpeed = math.clamp(flySpeed + 10, 10, 500)
-    flySpDisp.Text = tostring(flySpeed)
-end)
-flyBtnM.MouseButton1Click:Connect(function()
-    flySpeed = math.clamp(flySpeed - 10, 10, 500)
-    flySpDisp.Text = tostring(flySpeed)
-end)
-
--- Mostrar panel de velocidad cuando el fly está activo
-flyBtn.MouseButton1Click:Connect(function()
-    flySpeedPanel.Visible = flyEnabled
-end)
-
-Players.LocalPlayer.CharacterAdded:Connect(function()
-    if flyEnabled then
-        flyBtn.Text = "🦅 Fly: OFF"
-        flyEnabled = false
-        flySpeedPanel.Visible = false
-        StopFly()
-    end
-end)
-
 -- ===== MOVIMIENTO =====
 local sBtn = addBtn("🚀 Speed Controller: OFF", Color3.fromRGB(0, 200, 200), movePage)
 
@@ -670,11 +482,13 @@ boostBtn.MouseButton1Click:Connect(function()
     boostBtn.Text = boostFpsEnabled and "🚀 Boost FPS: ON" or "🚀 Boost FPS: OFF"
 
     if boostFpsEnabled then
+        -- Desactivar efectos visuales pesados
         local lighting = game:GetService("Lighting")
         lighting.GlobalShadows    = false
         lighting.FogEnd           = 100000
         lighting.Brightness       = 2
 
+        -- Eliminar efectos de post-procesado
         for _, fx in pairs(lighting:GetChildren()) do
             if fx:IsA("BlurEffect") or fx:IsA("BloomEffect")
             or fx:IsA("ColorCorrectionEffect") or fx:IsA("SunRaysEffect")
@@ -683,6 +497,7 @@ boostBtn.MouseButton1Click:Connect(function()
             end
         end
 
+        -- Reducir calidad de partículas en el workspace
         for _, v in pairs(workspace:GetDescendants()) do
             if v:IsA("ParticleEmitter") then
                 v.Enabled = false
@@ -691,9 +506,12 @@ boostBtn.MouseButton1Click:Connect(function()
             end
         end
 
+        -- Limitar FPS target y reducir carga de render
         settings().Rendering.QualityLevel = Enum.QualityLevel.Level01
+
         print("✅ Boost FPS activado — efectos visuales reducidos")
     else
+        -- Restaurar configuraciones
         local lighting = game:GetService("Lighting")
         lighting.GlobalShadows = true
 
@@ -713,6 +531,7 @@ boostBtn.MouseButton1Click:Connect(function()
         end
 
         settings().Rendering.QualityLevel = Enum.QualityLevel.Automatic
+
         print("🔄 Boost FPS desactivado — efectos restaurados")
     end
 end)
@@ -721,7 +540,6 @@ end)
 closeBtn.MouseButton1Click:Connect(function()
     ESPEnabled = false
     ClearESP()
-    StopFly()
     local w = workspace:FindFirstChild("DivineWaterSolid")
     if w then w:Destroy() end
     screenGui:Destroy()
