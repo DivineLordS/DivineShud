@@ -323,6 +323,82 @@ task.spawn(function()
     end
 end)
 
+-- ===== FLY =====
+local flyEnabled = false
+local flyConnection = nil
+local bodyVelocity = nil
+local bodyGyro = nil
+
+local function StopFly()
+    flyEnabled = false
+    if flyConnection then flyConnection:Disconnect() flyConnection = nil end
+    if bodyVelocity then bodyVelocity:Destroy() bodyVelocity = nil end
+    if bodyGyro then bodyGyro:Destroy() bodyGyro = nil end
+    local char = Players.LocalPlayer.Character
+    local hum = char and char:FindFirstChild("Humanoid")
+    if hum then hum.PlatformStand = false end
+end
+
+local function StartFly()
+    local char = Players.LocalPlayer.Character
+    local hrp = char and char:FindFirstChild("HumanoidRootPart")
+    local hum = char and char:FindFirstChild("Humanoid")
+    if not hrp or not hum then return end
+
+    hum.PlatformStand = true
+
+    bodyVelocity = Instance.new("BodyVelocity", hrp)
+    bodyVelocity.Velocity = Vector3.zero
+    bodyVelocity.MaxForce = Vector3.new(1e5, 1e5, 1e5)
+
+    bodyGyro = Instance.new("BodyGyro", hrp)
+    bodyGyro.MaxTorque = Vector3.new(1e5, 1e5, 1e5)
+    bodyGyro.P = 1e4
+
+    local flySpeed = 80
+    local cam = workspace.CurrentCamera
+
+    flyConnection = RunService.RenderStepped:Connect(function()
+        if not flyEnabled then return end
+        local moveDir = Vector3.zero
+        local cf = cam.CFrame
+
+        if UserInputService:IsKeyDown(Enum.KeyCode.W) then moveDir = moveDir + cf.LookVector end
+        if UserInputService:IsKeyDown(Enum.KeyCode.S) then moveDir = moveDir - cf.LookVector end
+        if UserInputService:IsKeyDown(Enum.KeyCode.A) then moveDir = moveDir - cf.RightVector end
+        if UserInputService:IsKeyDown(Enum.KeyCode.D) then moveDir = moveDir + cf.RightVector end
+        if UserInputService:IsKeyDown(Enum.KeyCode.Space) then moveDir = moveDir + Vector3.new(0, 1, 0) end
+        if UserInputService:IsKeyDown(Enum.KeyCode.LeftControl) then moveDir = moveDir - Vector3.new(0, 1, 0) end
+
+        if moveDir.Magnitude > 0 then
+            bodyVelocity.Velocity = moveDir.Unit * flySpeed
+        else
+            bodyVelocity.Velocity = Vector3.zero
+        end
+
+        bodyGyro.CFrame = cf
+    end)
+end
+
+local flyBtn = addBtn("🦅 Fly: OFF", Color3.fromRGB(100, 255, 150), combatPage)
+flyBtn.MouseButton1Click:Connect(function()
+    flyEnabled = not flyEnabled
+    flyBtn.Text = flyEnabled and "🦅 Fly: ON" or "🦅 Fly: OFF"
+    if flyEnabled then
+        StartFly()
+    else
+        StopFly()
+    end
+end)
+
+Players.LocalPlayer.CharacterAdded:Connect(function()
+    if flyEnabled then
+        flyBtn.Text = "🦅 Fly: OFF"
+        flyEnabled = false
+        StopFly()
+    end
+end)
+
 -- ===== MOVIMIENTO =====
 local sBtn = addBtn("🚀 Speed Controller: OFF", Color3.fromRGB(0, 200, 200), movePage)
 
@@ -482,13 +558,11 @@ boostBtn.MouseButton1Click:Connect(function()
     boostBtn.Text = boostFpsEnabled and "🚀 Boost FPS: ON" or "🚀 Boost FPS: OFF"
 
     if boostFpsEnabled then
-        -- Desactivar efectos visuales pesados
         local lighting = game:GetService("Lighting")
         lighting.GlobalShadows    = false
         lighting.FogEnd           = 100000
         lighting.Brightness       = 2
 
-        -- Eliminar efectos de post-procesado
         for _, fx in pairs(lighting:GetChildren()) do
             if fx:IsA("BlurEffect") or fx:IsA("BloomEffect")
             or fx:IsA("ColorCorrectionEffect") or fx:IsA("SunRaysEffect")
@@ -497,7 +571,6 @@ boostBtn.MouseButton1Click:Connect(function()
             end
         end
 
-        -- Reducir calidad de partículas en el workspace
         for _, v in pairs(workspace:GetDescendants()) do
             if v:IsA("ParticleEmitter") then
                 v.Enabled = false
@@ -506,12 +579,9 @@ boostBtn.MouseButton1Click:Connect(function()
             end
         end
 
-        -- Limitar FPS target y reducir carga de render
         settings().Rendering.QualityLevel = Enum.QualityLevel.Level01
-
         print("✅ Boost FPS activado — efectos visuales reducidos")
     else
-        -- Restaurar configuraciones
         local lighting = game:GetService("Lighting")
         lighting.GlobalShadows = true
 
@@ -531,7 +601,6 @@ boostBtn.MouseButton1Click:Connect(function()
         end
 
         settings().Rendering.QualityLevel = Enum.QualityLevel.Automatic
-
         print("🔄 Boost FPS desactivado — efectos restaurados")
     end
 end)
@@ -540,6 +609,7 @@ end)
 closeBtn.MouseButton1Click:Connect(function()
     ESPEnabled = false
     ClearESP()
+    StopFly()
     local w = workspace:FindFirstChild("DivineWaterSolid")
     if w then w:Destroy() end
     screenGui:Destroy()
