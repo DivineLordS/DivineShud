@@ -1,5 +1,4 @@
--- TOMMY HUB PREMIUM | loadstring ready
--- Subir a GitHub como archivo raw y usar:
+-- DIVINE HUB PREMIUM | loadstring ready
 -- loadstring(game:HttpGet("URL_RAW_AQUI"))()
 
 local Players = game:GetService("Players")
@@ -14,7 +13,7 @@ local ESPObjects = {}
 local function CreateESP(target)
     if not target:FindFirstChild("Head") then return end
     local billboard = Instance.new("BillboardGui")
-    billboard.Name = "TommyESP"
+    billboard.Name = "DivineESP"
     billboard.Adornee = target:FindFirstChild("Head")
     billboard.Size = UDim2.new(0, 100, 0, 50)
     billboard.StudsOffset = Vector3.new(0, 2, 0)
@@ -117,10 +116,10 @@ end
 
 -- ==================== GUI ====================
 local pgui = Players.LocalPlayer:WaitForChild("PlayerGui")
-if pgui:FindFirstChild("TommyHub_Premium") then pgui.TommyHub_Premium:Destroy() end
+if pgui:FindFirstChild("DivineHub_Premium") then pgui.DivineHub_Premium:Destroy() end
 
 local screenGui = Instance.new("ScreenGui", pgui)
-screenGui.Name = "TommyHub_Premium"
+screenGui.Name = "DivineHub_Premium"
 screenGui.ResetOnSpawn = false
 
 local mainFrame = Instance.new("Frame", screenGui)
@@ -171,7 +170,7 @@ logoLabel.Font = Enum.Font.GothamBold
 local titleLabel = Instance.new("TextLabel", topBar)
 titleLabel.Size = UDim2.new(0.6, 0, 1, 0)
 titleLabel.Position = UDim2.new(0, 55, 0, 0)
-titleLabel.Text = "TOMMY HUB PREMIUM"
+titleLabel.Text = "DIVINE HUB PREMIUM"
 titleLabel.TextColor3 = Color3.new(1, 1, 1)
 titleLabel.Font = Enum.Font.GothamBold
 titleLabel.TextSize = 16
@@ -237,41 +236,41 @@ local function createPage(name)
     return p
 end
 
-local combatPage = createPage("Combat")
-local movePage   = createPage("Movement")
-local sea2Page   = createPage("Sea2")
-local sea3Page   = createPage("Sea3")
-
-local activePage = nil
+local combatPage  = createPage("Combate")
+local movePage    = createPage("Movimiento")
+local sea2Page    = createPage("Sea2")
+local sea3Page    = createPage("Sea3")
+local visualsPage = createPage("Visuals")
 
 local function showPage(page)
-    if activePage then activePage.Visible = false end
-    activePage = page
+    for _, v in pairs(contentFrame:GetChildren()) do
+        if v:IsA("ScrollingFrame") then v.Visible = false end
+    end
     page.Visible = true
 end
 
-local function createTab(label, page)
-    local btn = Instance.new("TextButton", tabContainer)
-    btn.Size = UDim2.new(0, 90, 0, 38)
-    btn.BackgroundColor3 = Color3.fromRGB(30, 20, 60)
-    btn.Text = label
-    btn.TextColor3 = Color3.new(1, 1, 1)
-    btn.Font = Enum.Font.GothamBold
-    btn.TextSize = 11
-    btn.BorderSizePixel = 0
-    local c = Instance.new("UICorner", btn)
+local function createTab(name, page)
+    local b = Instance.new("TextButton", tabContainer)
+    b.Size = UDim2.new(0, 90, 0, 38)
+    b.Text = name
+    b.BackgroundColor3 = Color3.fromRGB(30, 20, 60)
+    b.TextColor3 = Color3.new(1, 1, 1)
+    b.Font = Enum.Font.GothamBold
+    b.TextSize = 11
+    b.BorderSizePixel = 0
+    local c = Instance.new("UICorner", b)
     c.CornerRadius = UDim.new(0, 8)
-    local s = Instance.new("UIStroke", btn)
+    local s = Instance.new("UIStroke", b)
     s.Color = Color3.fromRGB(100, 50, 255)
     s.Thickness = 1
-    btn.MouseButton1Click:Connect(function() showPage(page) end)
-    return btn
+    b.MouseButton1Click:Connect(function() showPage(page) end)
 end
 
 createTab("⚔️ Combate", combatPage)
 createTab("🏃 Mov",     movePage)
 createTab("🌊 Sea 2",   sea2Page)
 createTab("🏰 Sea 3",   sea3Page)
+createTab("🖥️ Visuals", visualsPage)
 
 showPage(combatPage)
 
@@ -441,10 +440,10 @@ RunService.RenderStepped:Connect(function()
     local hrp = char and char:FindFirstChild("HumanoidRootPart")
     if walkWaterEnabled and hrp then
         if hrp.Position.Y >= 9.5 and hrp.AssemblyLinearVelocity.Y <= 0 then
-            local waterPart = workspace:FindFirstChild("TommyWaterSolid")
+            local waterPart = workspace:FindFirstChild("DivineWaterSolid")
             if not waterPart then
                 waterPart = Instance.new("Part", workspace)
-                waterPart.Name = "TommyWaterSolid"
+                waterPart.Name = "DivineWaterSolid"
                 waterPart.Size = Vector3.new(20, 1, 20)
                 waterPart.Transparency = 1
                 waterPart.Anchored = true
@@ -453,11 +452,11 @@ RunService.RenderStepped:Connect(function()
             end
             waterPart.CFrame = CFrame.new(hrp.Position.X, 9.2, hrp.Position.Z)
         else
-            local w = workspace:FindFirstChild("TommyWaterSolid")
+            local w = workspace:FindFirstChild("DivineWaterSolid")
             if w then w:Destroy() end
         end
     else
-        local w = workspace:FindFirstChild("TommyWaterSolid")
+        local w = workspace:FindFirstChild("DivineWaterSolid")
         if w then w:Destroy() end
     end
 end)
@@ -475,11 +474,73 @@ addBtn("🏛️ Mansión", Color3.fromRGB(255, 170, 0), sea3Page).MouseButton1Cl
     Players.LocalPlayer.Character:PivotTo(CFrame.new(-12463, 375, -7523))
 end)
 
+-- ===== VISUALS =====
+local boostFpsEnabled = false
+local boostBtn = addBtn("🚀 Boost FPS: OFF", Color3.fromRGB(0, 220, 120), visualsPage)
+boostBtn.MouseButton1Click:Connect(function()
+    boostFpsEnabled = not boostFpsEnabled
+    boostBtn.Text = boostFpsEnabled and "🚀 Boost FPS: ON" or "🚀 Boost FPS: OFF"
+
+    if boostFpsEnabled then
+        -- Desactivar efectos visuales pesados
+        local lighting = game:GetService("Lighting")
+        lighting.GlobalShadows    = false
+        lighting.FogEnd           = 100000
+        lighting.Brightness       = 2
+
+        -- Eliminar efectos de post-procesado
+        for _, fx in pairs(lighting:GetChildren()) do
+            if fx:IsA("BlurEffect") or fx:IsA("BloomEffect")
+            or fx:IsA("ColorCorrectionEffect") or fx:IsA("SunRaysEffect")
+            or fx:IsA("DepthOfFieldEffect") then
+                fx.Enabled = false
+            end
+        end
+
+        -- Reducir calidad de partículas en el workspace
+        for _, v in pairs(workspace:GetDescendants()) do
+            if v:IsA("ParticleEmitter") then
+                v.Enabled = false
+            elseif v:IsA("Fire") or v:IsA("Smoke") or v:IsA("Sparkles") then
+                v.Enabled = false
+            end
+        end
+
+        -- Limitar FPS target y reducir carga de render
+        settings().Rendering.QualityLevel = Enum.QualityLevel.Level01
+
+        print("✅ Boost FPS activado — efectos visuales reducidos")
+    else
+        -- Restaurar configuraciones
+        local lighting = game:GetService("Lighting")
+        lighting.GlobalShadows = true
+
+        for _, fx in pairs(lighting:GetChildren()) do
+            if fx:IsA("BlurEffect") or fx:IsA("BloomEffect")
+            or fx:IsA("ColorCorrectionEffect") or fx:IsA("SunRaysEffect")
+            or fx:IsA("DepthOfFieldEffect") then
+                fx.Enabled = true
+            end
+        end
+
+        for _, v in pairs(workspace:GetDescendants()) do
+            if v:IsA("ParticleEmitter") or v:IsA("Fire")
+            or v:IsA("Smoke") or v:IsA("Sparkles") then
+                v.Enabled = true
+            end
+        end
+
+        settings().Rendering.QualityLevel = Enum.QualityLevel.Automatic
+
+        print("🔄 Boost FPS desactivado — efectos restaurados")
+    end
+end)
+
 -- ===== CONTROLES VENTANA =====
 closeBtn.MouseButton1Click:Connect(function()
     ESPEnabled = false
     ClearESP()
-    local w = workspace:FindFirstChild("TommyWaterSolid")
+    local w = workspace:FindFirstChild("DivineWaterSolid")
     if w then w:Destroy() end
     screenGui:Destroy()
 end)
@@ -495,4 +556,4 @@ maximizeBtn.MouseButton1Click:Connect(function()
     tabContainer.Visible = true
 end)
 
-print("✅ Tommy Hub Premium cargado correctamente")
+print("✅ Divine Hub Premium cargado correctamente")
