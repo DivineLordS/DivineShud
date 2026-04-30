@@ -1,63 +1,41 @@
--- TOMMY HUB LITE (FUNCIONAL DELTA)
+-- TOMMY HUB PREMIUM | VISUALS + FPS BOOST PRO
 
 local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
 local Lighting = game:GetService("Lighting")
 
--- ==================== VARIABLES ====================
-local ESPEnabled = false
-local FPSBoostEnabled = false
-local ESPObjects = {}
-
--- ==================== ESP ====================
-local function ClearESP()
-    for _, v in pairs(ESPObjects) do
-        if v then v:Destroy() end
-    end
-    ESPObjects = {}
-end
-
-local function CreateESP(char)
-    if not char:FindFirstChild("Head") then return end
-
-    local bill = Instance.new("BillboardGui")
-    bill.Size = UDim2.new(0,100,0,40)
-    bill.Adornee = char.Head
-    bill.AlwaysOnTop = true
-    bill.Parent = char.Head
-
-    local txt = Instance.new("TextLabel", bill)
-    txt.Size = UDim2.new(1,0,1,0)
-    txt.BackgroundTransparency = 1
-    txt.Text = char.Name
-    txt.TextColor3 = Color3.new(0,1,1)
-
-    table.insert(ESPObjects, bill)
-end
-
-local function UpdateESP()
-    ClearESP()
-    if not ESPEnabled then return end
-
-    for _, p in pairs(Players:GetPlayers()) do
-        if p ~= Players.LocalPlayer and p.Character then
-            CreateESP(p.Character)
-        end
-    end
-end
-
 -- ==================== FPS BOOST ====================
+local FPSBoostEnabled = false
+
 local function ApplyFPSBoost()
     for _, v in pairs(workspace:GetDescendants()) do
         if v:IsA("BasePart") then
             v.Material = Enum.Material.SmoothPlastic
+            v.Reflectance = 0
         elseif v:IsA("Decal") or v:IsA("Texture") then
             v.Transparency = 1
-        elseif v:IsA("ParticleEmitter") then
+        elseif v:IsA("ParticleEmitter") or v:IsA("Trail") then
             v.Enabled = false
+        elseif v:IsA("Explosion") then
+            v.BlastPressure = 1
+            v.BlastRadius = 1
         end
     end
 
+    -- Lighting optimization
     Lighting.GlobalShadows = false
+    Lighting.FogEnd = 9e9
+    Lighting.Brightness = 1
+
+    -- Terrain optimization
+    if workspace:FindFirstChildOfClass("Terrain") then
+        local t = workspace:FindFirstChildOfClass("Terrain")
+        t.WaterWaveSize = 0
+        t.WaterWaveSpeed = 0
+        t.WaterReflectance = 0
+        t.WaterTransparency = 1
+    end
 end
 
 local function RemoveFPSBoost()
@@ -65,42 +43,77 @@ local function RemoveFPSBoost()
 end
 
 -- ==================== GUI ====================
-local gui = Instance.new("ScreenGui", Players.LocalPlayer.PlayerGui)
+local pgui = Players.LocalPlayer:WaitForChild("PlayerGui")
 
-local frame = Instance.new("Frame", gui)
-frame.Size = UDim2.new(0,300,0,200)
-frame.Position = UDim2.new(0.5,-150,0.5,-100)
-frame.BackgroundColor3 = Color3.fromRGB(20,20,30)
-frame.Active = true
-frame.Draggable = true
+if pgui:FindFirstChild("TommyHub") then
+    pgui.TommyHub:Destroy()
+end
 
-local title = Instance.new("TextLabel", frame)
-title.Size = UDim2.new(1,0,0,40)
-title.Text = "TOMMY HUB"
-title.TextColor3 = Color3.new(1,1,1)
-title.BackgroundTransparency = 1
+local gui = Instance.new("ScreenGui", pgui)
+gui.Name = "TommyHub"
 
--- ESP BUTTON
-local espBtn = Instance.new("TextButton", frame)
-espBtn.Size = UDim2.new(0.8,0,0,40)
-espBtn.Position = UDim2.new(0.1,0,0.3,0)
-espBtn.Text = "ESP OFF"
+local main = Instance.new("Frame", gui)
+main.Size = UDim2.new(0, 420, 0, 350)
+main.Position = UDim2.new(0.5, -210, 0.2, 0)
+main.BackgroundColor3 = Color3.fromRGB(20,20,30)
+main.Active = true
+main.Draggable = true
 
-espBtn.MouseButton1Click:Connect(function()
-    ESPEnabled = not ESPEnabled
-    espBtn.Text = ESPEnabled and "ESP ON" or "ESP OFF"
-    UpdateESP()
-end)
+-- Tabs
+local tabFrame = Instance.new("Frame", main)
+tabFrame.Size = UDim2.new(1,0,0,40)
+tabFrame.BackgroundTransparency = 1
 
--- FPS BUTTON
-local fpsBtn = Instance.new("TextButton", frame)
-fpsBtn.Size = UDim2.new(0.8,0,0,40)
-fpsBtn.Position = UDim2.new(0.1,0,0.6,0)
-fpsBtn.Text = "FPS BOOST OFF"
+local content = Instance.new("Frame", main)
+content.Size = UDim2.new(1,0,1,-40)
+content.Position = UDim2.new(0,0,0,40)
+content.BackgroundTransparency = 1
+
+local function createPage()
+    local p = Instance.new("Frame", content)
+    p.Size = UDim2.new(1,0,1,0)
+    p.Visible = false
+    return p
+end
+
+local combatPage = createPage()
+local visualPage = createPage()
+
+local function showPage(p)
+    combatPage.Visible = false
+    visualPage.Visible = false
+    p.Visible = true
+end
+
+local function createTab(text, page, pos)
+    local btn = Instance.new("TextButton", tabFrame)
+    btn.Size = UDim2.new(0,150,1,0)
+    btn.Position = pos
+    btn.Text = text
+    btn.MouseButton1Click:Connect(function()
+        showPage(page)
+    end)
+end
+
+createTab("⚔️ Combat", combatPage, UDim2.new(0,0,0,0))
+createTab("👁️ Visuals", visualPage, UDim2.new(0,150,0,0))
+
+showPage(combatPage)
+
+local function addBtn(text, parent, y)
+    local btn = Instance.new("TextButton", parent)
+    btn.Size = UDim2.new(0.8,0,0,40)
+    btn.Position = UDim2.new(0.1,0,0,y)
+    btn.Text = text
+    return btn
+end
+
+-- ==================== VISUALS ====================
+local fpsBtn = addBtn("🎮 FPS BOOST: OFF", visualPage, 20)
 
 fpsBtn.MouseButton1Click:Connect(function()
     FPSBoostEnabled = not FPSBoostEnabled
-    fpsBtn.Text = FPSBoostEnabled and "FPS BOOST ON" or "FPS BOOST OFF"
+    fpsBtn.Text = FPSBoostEnabled and "🎮 FPS BOOST: ON" or "🎮 FPS BOOST: OFF"
 
     if FPSBoostEnabled then
         ApplyFPSBoost()
@@ -109,4 +122,4 @@ fpsBtn.MouseButton1Click:Connect(function()
     end
 end)
 
-print("✅ HUB FUNCIONANDO")
+print("✅ HUB CON FPS BOOST PRO LISTO")
